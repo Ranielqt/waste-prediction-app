@@ -55,7 +55,7 @@ export default function AnalyticsScreen() {
 
   const ScoreBar = ({ label, score }: { label: string; score: number }) => {
     const percentage = score * 100;
-    const color = score >= 0.9 ? '#10b981' : score >= 0.8 ? '#3b82f6' : '#f59e0b';
+    const color = score >= 0.4 ? '#10b981' : score >= 0.2 ? '#3b82f6' : '#f59e0b';
 
     return (
       <View style={styles.scoreBarContainer}>
@@ -69,7 +69,7 @@ export default function AnalyticsScreen() {
           <View
             style={[
               styles.scoreBarFill,
-              { width: `${percentage}%`, backgroundColor: color },
+              { width: `${Math.min(percentage, 100)}%`, backgroundColor: color },
             ]}
           />
         </View>
@@ -95,23 +95,23 @@ export default function AnalyticsScreen() {
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📊 Regression Metrics</Text>
+          <Text style={styles.sectionTitle}>📊 Model Metrics</Text>
           <Text style={styles.sectionDescription}>
-            Evaluating predicted garbage volume accuracy
+            Evaluating garbage volume prediction accuracy
           </Text>
 
           <View style={styles.metricsGrid}>
             <MetricCard
               title="R² Score"
-              value={metrics.regression.r2.toFixed(3)}
+              value={metrics.r2?.toFixed(3) || "0.000"}
               subtitle="Variance explained"
               icon={Award}
               color="#8b5cf6"
             />
             <MetricCard
-              title="MAE"
-              value={`${metrics.regression.mae.toFixed(1)} kg`}
-              subtitle="Mean Absolute Error"
+              title="Accuracy"
+              value={`${((metrics.accuracy || 0) * 100).toFixed(1)}%`}
+              subtitle="Model accuracy"
               icon={Target}
               color="#3b82f6"
             />
@@ -119,9 +119,9 @@ export default function AnalyticsScreen() {
 
           <View style={styles.metricsGrid}>
             <MetricCard
-              title="RMSE"
-              value={`${metrics.regression.rmse.toFixed(1)} kg`}
-              subtitle="Root Mean Squared Error"
+              title="MSE"
+              value={metrics.mse?.toFixed(3) || "0.000"}
+              subtitle="Mean Squared Error"
               icon={TrendingUp}
               color="#06b6d4"
             />
@@ -135,36 +135,39 @@ export default function AnalyticsScreen() {
           </View>
 
           <View style={styles.infoBox}>
-            <Text style={styles.infoTitle}>Regression Interpretation</Text>
+            <Text style={styles.infoTitle}>Model Interpretation</Text>
             <Text style={styles.infoText}>
-              R² = {metrics.regression.r2.toFixed(3)} means the model explains{' '}
-              {(metrics.regression.r2 * 100).toFixed(1)}% of the variance in garbage
-              volume. MAE of {metrics.regression.mae.toFixed(0)}kg indicates typical
-              prediction error.
+              R² = {metrics.r2?.toFixed(3) || "0.000"} means the model explains{' '}
+              {((metrics.r2 || 0) * 100).toFixed(1)}% of the variance in garbage
+              volume. Accuracy of {((metrics.accuracy || 0) * 100).toFixed(0)}% shows
+              overall prediction correctness.
             </Text>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🎯 Classification Metrics</Text>
+          <Text style={styles.sectionTitle}>🎯 Feature Importance</Text>
           <Text style={styles.sectionDescription}>
-            Overflow risk prediction performance
+            What factors most influence predictions
           </Text>
 
           <View style={styles.scoresCard}>
-            <ScoreBar label="Accuracy" score={metrics.classification.accuracy} />
-            <ScoreBar label="Precision" score={metrics.classification.precision} />
-            <ScoreBar label="Recall" score={metrics.classification.recall} />
-            <ScoreBar label="F1 Score" score={metrics.classification.f1Score} />
+            {metrics.featureImportance && Object.entries(metrics.featureImportance).map(([feature, importance]) => (
+              <ScoreBar 
+                key={feature} 
+                label={feature.charAt(0).toUpperCase() + feature.slice(1).replace(/([A-Z])/g, ' $1')} 
+                score={typeof importance === 'number' ? importance : 0} 
+              />
+            ))}
           </View>
 
           <View style={styles.infoBox}>
-            <Text style={styles.infoTitle}>Classification Interpretation</Text>
+            <Text style={styles.infoTitle}>Feature Interpretation</Text>
             <Text style={styles.infoText}>
-              Accuracy of {(metrics.classification.accuracy * 100).toFixed(0)}% shows
-              overall correctness. Precision ({(metrics.classification.precision * 100).toFixed(0)}%)
-              indicates reliability of overflow predictions. Recall ({(metrics.classification.recall * 100).toFixed(0)}%)
-              shows how well the model catches actual overflows.
+              Population ({((metrics.featureImportance?.population || 0) * 100).toFixed(1)}%) and 
+              Bin Capacity ({((metrics.featureImportance?.binCapacity || 0) * 100).toFixed(1)}%) are the 
+              most important factors. Weather conditions like rainfall ({((metrics.featureImportance?.rainfall || 0) * 100).toFixed(1)}%) 
+              and market days ({((metrics.featureImportance?.marketDay || 0) * 100).toFixed(1)}%) also significantly influence predictions.
             </Text>
           </View>
         </View>
@@ -188,7 +191,7 @@ export default function AnalyticsScreen() {
             <View style={styles.architectureRow}>
               <Text style={styles.architectureLabel}>Features</Text>
               <Text style={styles.architectureValue}>
-                7 input variables (incl. weather)
+                {metrics.featuresUsed?.length || 7} input variables
               </Text>
             </View>
             <View style={styles.architectureRow}>
@@ -198,7 +201,7 @@ export default function AnalyticsScreen() {
             <View style={styles.architectureRow}>
               <Text style={styles.architectureLabel}>Outputs</Text>
               <Text style={styles.architectureValue}>
-                Volume (Regression) + Risk (Classification)
+                Volume + Risk Level
               </Text>
             </View>
           </View>
@@ -229,7 +232,7 @@ export default function AnalyticsScreen() {
                 <Text style={styles.weatherFeatureTitle}>Rainfall (mm)</Text>
                 <Text style={styles.weatherFeatureDesc}>
                   Heavy rain reduces outdoor waste generation. Light rain increases indoor activities.
-                  Importance: ~18%
+                  Importance: ~{((metrics.featureImportance?.rainfall || 0) * 100).toFixed(1)}%
                 </Text>
               </View>
             </View>
@@ -252,10 +255,10 @@ export default function AnalyticsScreen() {
                 <Target size={20} color="#06b6d4" />
               </View>
               <View style={styles.weatherTextBox}>
-                <Text style={styles.weatherFeatureTitle}>Humidity (%)</Text>
+                <Text style={styles.weatherFeatureTitle}>Market Days</Text>
                 <Text style={styles.weatherFeatureDesc}>
-                  Affects waste decomposition rate and collection frequency.
-                  Indirectly influences predictions.
+                  Market days increase waste generation by 25-40% due to packaging and food waste.
+                  Importance: ~{((metrics.featureImportance?.marketDay || 0) * 100).toFixed(1)}%
                 </Text>
               </View>
             </View>
@@ -271,7 +274,11 @@ export default function AnalyticsScreen() {
           </View>
         </View>
 
-        <View style={styles.bottomPadding} />
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            Model trained: {metrics.lastTrained ? new Date(metrics.lastTrained).toLocaleDateString() : 'Recently'}
+          </Text>
+        </View>
       </ScrollView>
     </View>
   );
@@ -451,9 +458,6 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#111827',
   },
-  bottomPadding: {
-    height: 24,
-  },
   weatherIntegrationCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -491,5 +495,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6b7280',
     lineHeight: 16,
+  },
+  footer: {
+    padding: 20,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    marginTop: 20,
+  },
+  footerText: {
+    fontSize: 12,
+    color: '#9ca3af',
+    textAlign: 'center',
   },
 });

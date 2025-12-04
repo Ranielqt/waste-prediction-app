@@ -10,7 +10,8 @@ import {
 import { Stack } from 'expo-router';
 import { usePredictions } from '@/contexts/PredictionContext';
 import { BARANGAYS, RISK_COLORS, RISK_LABELS } from '@/constants/barangays';
-import { AlertTriangle, TrendingUp, MapPin, RefreshCw, CloudRain, Thermometer, Droplets } from 'lucide-react-native';
+import { getHistoricalWaste } from './historicalWaste';
+import { AlertTriangle, TrendingUp, MapPin, RefreshCw, CloudRain } from 'lucide-react-native';
 import { Prediction } from '@/constants/types';
 
 export default function DashboardScreen() {
@@ -21,17 +22,58 @@ export default function DashboardScreen() {
     moderateRiskBarangays,
     safeBarangays,
     totalPredictedVolume,
-    averageCapacityUtilization,
     refreshPredictions,
   } = usePredictions();
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric',
-      year: 'numeric' 
+    // Add this right after your usePredictions() call
+  console.log('=== DASHBOARD DEBUG ===');
+  console.log('Total predictions:', predictions?.length);
+  console.log('High risk count:', highRiskBarangays?.length);
+  console.log('Moderate risk count:', moderateRiskBarangays?.length);
+  console.log('Safe count:', safeBarangays?.length);
+
+  if (predictions && predictions.length > 0) {
+    console.log('Sample prediction risks:');
+    predictions.slice(0, 5).forEach((p, i) => {
+      console.log(`  ${i+1}. ${p.barangayName}: ${p.overflowRisk}`);
     });
+    
+    // Check what risk values actually exist
+    const uniqueRisks = [...new Set(predictions.map(p => p.overflowRisk))];
+    console.log('Unique risk values in predictions:', uniqueRisks);
+  }
+
+  // Debug risk distribution
+  React.useEffect(() => {
+    if (predictions && predictions.length > 0) {
+      console.log('=== RISK DISTRIBUTION ===');
+      const risks = predictions.reduce((acc: Record<string, number>, p) => {
+        acc[p.overflowRisk] = (acc[p.overflowRisk] || 0) + 1;
+        return acc;
+      }, {});
+      console.log('Risk counts:', risks);
+      
+      // Check if all are high
+      const allHigh = predictions.every(p => p.overflowRisk === 'high');
+      if (allHigh) {
+        console.log('⚠️ WARNING: All barangays marked as HIGH risk');
+        console.log('Check ML model risk classifier in api.py');
+      }
+    }
+  }, [predictions]);
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'Today';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        year: 'numeric' 
+      });
+    } catch {
+      return 'Today';
+    }
   };
 
   const StatCard = ({ 
@@ -57,51 +99,19 @@ export default function DashboardScreen() {
     </View>
   );
 
-  const WeatherCard = () => {
-    if (predictions.length === 0) return null;
-    
-    const weatherFactor = predictions[0].factors.find(f => f.feature === 'Rainfall');
-    const tempFactor = predictions[0].factors.find(f => f.feature === 'Temperature');
-    const humidityValue = '75%';
-    
-    return (
-      <View style={styles.weatherCard}>
-        <View style={styles.weatherHeader}>
-          <CloudRain size={24} color="#3b82f6" />
-          <Text style={styles.weatherTitle}>Weather Conditions</Text>
-        </View>
-        <View style={styles.weatherGrid}>
-          <View style={styles.weatherItem}>
-            <CloudRain size={20} color="#3b82f6" />
-            <Text style={styles.weatherLabel}>Rainfall</Text>
-            <Text style={styles.weatherValue}>{weatherFactor?.value || 'N/A'}</Text>
-          </View>
-          <View style={styles.weatherItem}>
-            <Thermometer size={20} color="#ef4444" />
-            <Text style={styles.weatherLabel}>Temperature</Text>
-            <Text style={styles.weatherValue}>{tempFactor?.value || 'N/A'}</Text>
-          </View>
-          <View style={styles.weatherItem}>
-            <Droplets size={20} color="#06b6d4" />
-            <Text style={styles.weatherLabel}>Humidity</Text>
-            <Text style={styles.weatherValue}>{humidityValue}</Text>
-          </View>
-        </View>
-        <Text style={styles.weatherNote}>
-          Weather data influences garbage accumulation predictions
-        </Text>
-      </View>
-    );
-  };
-
   const BarangayCard = ({ prediction }: { prediction: Prediction }) => {
+    if (!prediction) return null;
+    
     const barangay = BARANGAYS.find((b) => b.id === prediction.barangayId);
     if (!barangay) return null;
 
-    const capacityPercentage = (prediction.predictedVolume / barangay.binCapacity) * 100;
     const riskColor = RISK_COLORS[prediction.overflowRisk];
     
-    const weatherFactor = prediction.factors.find(f => f.feature === 'Rainfall');
+    // Use CSV historical data
+    const historicalWaste = getHistoricalWaste(barangay.name);
+    const increaseAmount = prediction.predictedVolume - historicalWaste;
+    const increasePercentage = historicalWaste > 0 ? 
+      (increaseAmount / historicalWaste) * 100 : 0;
 
     return (
       <View style={styles.barangayCard}>
@@ -124,41 +134,49 @@ export default function DashboardScreen() {
           </Text>
         </View>
 
-        <View style={styles.progressBarContainer}>
-          <View style={styles.progressBarBg}>
-            <View
-              style={[
-                styles.progressBarFill,
-                {
-                  width: `${Math.min(capacityPercentage, 100)}%`,
-                  backgroundColor: riskColor,
-                },
-              ]}
-            />
+        <View style={styles.comparisonRow}>
+          <View style={styles.comparisonItem}>
+            <Text style={styles.comparisonLabel}>Historical</Text>
+            <Text style={styles.comparisonValue}>
+              {historicalWaste.toLocaleString()} kg
+            </Text>
           </View>
-          <Text style={styles.progressLabel}>
-            {capacityPercentage.toFixed(0)}% of capacity
-          </Text>
+          <View style={styles.comparisonItem}>
+            <Text style={styles.comparisonLabel}>Change</Text>
+            <Text style={[
+              styles.comparisonValue, 
+              { color: increaseAmount >= 0 ? '#ef4444' : '#10b981' }
+            ]}>
+              {increaseAmount >= 0 ? '+' : ''}{increaseAmount.toLocaleString()} kg
+              {' '}({increaseAmount >= 0 ? '+' : ''}{increasePercentage.toFixed(0)}%)
+            </Text>
+          </View>
         </View>
 
         <View style={styles.metaRow}>
           <Text style={styles.metaText}>
-            Capacity: {barangay.binCapacity.toLocaleString()} kg
-          </Text>
-          <Text style={styles.confidenceText}>
             Confidence: {(prediction.confidence * 100).toFixed(0)}%
           </Text>
+          {prediction.events && prediction.events.length > 0 && (
+            <View style={styles.eventsBadge}>
+              <CloudRain size={12} color="#3b82f6" />
+              <Text style={styles.eventsText}>
+                {prediction.events.length} event{prediction.events.length !== 1 ? 's' : ''}
+              </Text>
+            </View>
+          )}
         </View>
-        
-        {weatherFactor && (
-          <View style={styles.weatherBadge}>
-            <CloudRain size={14} color="#3b82f6" />
-            <Text style={styles.weatherBadgeText}>{weatherFactor.value}</Text>
-          </View>
-        )}
       </View>
     );
   };
+
+  // Calculate average increase
+  const avgIncrease = predictions && predictions.length > 0 ? 
+    predictions.reduce((sum, p) => {
+      const barangay = BARANGAYS.find(b => b.id === p.barangayId);
+      const historical = barangay ? getHistoricalWaste(barangay.name) : 0;
+      return sum + (historical > 0 ? ((p.predictedVolume - historical) / historical) * 100 : 0);
+    }, 0) / predictions.length : 0;
 
   return (
     <View style={styles.container}>
@@ -188,10 +206,10 @@ export default function DashboardScreen() {
       >
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Waste Management Prediction</Text>
-          <Text style={styles.headerSubtitle}>Cagayan de Oro City • {predictions.length} Barangays</Text>
-          {predictions.length > 0 && (
+          <Text style={styles.headerSubtitle}>Cagayan de Oro City • {predictions?.length || 0} Barangays</Text>
+          {predictions && predictions.length > 0 && predictions[0]?.date && (
             <Text style={styles.predictionDate}>
-              Forecast for {formatDate(predictions[0].date)} • With Weather Data
+              Forecast for {formatDate(predictions[0].date)} • Using Historical CSV Data
             </Text>
           )}
         </View>
@@ -199,14 +217,14 @@ export default function DashboardScreen() {
         <View style={styles.statsGrid}>
           <StatCard
             title="High Risk"
-            value={highRiskBarangays.length.toString()}
+            value={highRiskBarangays?.length?.toString() || '0'}
             subtitle="Overflow likely"
             color={RISK_COLORS.high}
             icon={AlertTriangle}
           />
           <StatCard
             title="Moderate"
-            value={moderateRiskBarangays.length.toString()}
+            value={moderateRiskBarangays?.length?.toString() || '0'}
             subtitle="Monitor closely"
             color={RISK_COLORS.moderate}
             icon={AlertTriangle}
@@ -222,37 +240,35 @@ export default function DashboardScreen() {
             icon={TrendingUp}
           />
           <StatCard
-            title="Avg. Utilization"
-            value={`${averageCapacityUtilization.toFixed(0)}%`}
-            subtitle="Across all barangays"
+            title="Avg. Increase"
+            value={`${avgIncrease.toFixed(0)}%`}
+            subtitle="From historical"
             color="#8b5cf6"
             icon={TrendingUp}
           />
         </View>
 
-        <WeatherCard />
-
-        {highRiskBarangays.length > 0 && (
+        {highRiskBarangays && highRiskBarangays.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>⚠️ High Risk Barangays</Text>
+            <Text style={styles.sectionTitle}>⚠️ High Risk Barangays ({highRiskBarangays.length})</Text>
             {highRiskBarangays.map((prediction) => (
               <BarangayCard key={prediction.barangayId} prediction={prediction} />
             ))}
           </View>
         )}
 
-        {moderateRiskBarangays.length > 0 && (
+        {moderateRiskBarangays && moderateRiskBarangays.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🔶 Moderate Risk</Text>
+            <Text style={styles.sectionTitle}>🔶 Moderate Risk ({moderateRiskBarangays.length})</Text>
             {moderateRiskBarangays.map((prediction) => (
               <BarangayCard key={prediction.barangayId} prediction={prediction} />
             ))}
           </View>
         )}
 
-        {safeBarangays.length > 0 && (
+        {safeBarangays && safeBarangays.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>✅ Safe Barangays</Text>
+            <Text style={styles.sectionTitle}>✅ Safe Barangays ({safeBarangays.length})</Text>
             {safeBarangays.map((prediction) => (
               <BarangayCard key={prediction.barangayId} prediction={prediction} />
             ))}
@@ -261,7 +277,10 @@ export default function DashboardScreen() {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            Powered by Random Forest ML • Updated {new Date().toLocaleTimeString()}
+            Using CSV Historical Data • ML Model v1.0
+          </Text>
+          <Text style={styles.footerTimestamp}>
+            Updated {new Date().toLocaleTimeString()}
           </Text>
         </View>
       </ScrollView>
@@ -393,7 +412,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   volumeLabel: {
     fontSize: 14,
@@ -404,113 +423,71 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#111827',
   },
-  progressBarContainer: {
-    marginBottom: 10,
+  comparisonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    gap: 12,
   },
-  progressBarBg: {
-    height: 8,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 6,
+  comparisonItem: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
   },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 4,
+  comparisonLabel: {
+    fontSize: 11,
+    color: '#64748b',
+    marginBottom: 4,
   },
-  progressLabel: {
-    fontSize: 12,
-    color: '#6b7280',
+  comparisonValue: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#1e293b',
   },
   metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#f3f4f6',
   },
   metaText: {
     fontSize: 12,
-    color: '#9ca3af',
-  },
-  confidenceText: {
-    fontSize: 12,
     color: '#6b7280',
     fontWeight: '500' as const,
   },
-  footer: {
-    padding: 24,
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: 12,
-    color: '#9ca3af',
-    textAlign: 'center',
-  },
-  weatherCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginHorizontal: 16,
-    marginTop: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  weatherHeader: {
+  eventsBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
-  },
-  weatherTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
-    color: '#111827',
-  },
-  weatherGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  weatherItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  weatherLabel: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 6,
-    marginBottom: 4,
-  },
-  weatherValue: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: '#111827',
-  },
-  weatherNote: {
-    fontSize: 12,
-    color: '#9ca3af',
-    textAlign: 'center',
-    fontStyle: 'italic' as const,
-    marginTop: 8,
-  },
-  weatherBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
     backgroundColor: '#dbeafe',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 6,
     gap: 4,
-    alignSelf: 'flex-start',
   },
-  weatherBadgeText: {
+  eventsText: {
     fontSize: 11,
     color: '#1e40af',
     fontWeight: '500' as const,
+  },
+  footer: {
+    padding: 20,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    marginTop: 20,
+  },
+  footerText: {
+    fontSize: 12,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  footerTimestamp: {
+    fontSize: 11,
+    color: '#9ca3af',
   },
 });

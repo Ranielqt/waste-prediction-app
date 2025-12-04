@@ -1,0 +1,689 @@
+{
+  "model_info": {
+    "name": "CDO Waste Prediction - Real Data Model",
+    "version": "3.0",
+    "trained_date": "2025-12-04 09:11:50",
+    "num_barangays": 80,
+    "training_samples": 5000,
+    "features_used": [
+      "population",
+      "base_waste",
+      "rainfall_mm",
+      "temperature_c",
+      "day_of_week",
+      "month",
+      "day_of_month",
+      "is_weekend",
+      "is_market_day",
+      "is_fiesta",
+      "is_holiday",
+      "is_payday",
+      "is_rainy_season",
+      "is_summer"
+    ],
+    "barangays_covered": [
+      "Agusan",
+      "Baikingon",
+      "Balubal",
+      "Balulang",
+      "Barangay 1",
+      "Barangay 2",
+      "Barangay 3",
+      "Barangay 4",
+      "Barangay 5",
+      "Barangay 6",
+      "Barangay 7",
+      "Barangay 8",
+      "Barangay 9",
+      "Barangay 10",
+      "Barangay 11",
+      "Barangay 12",
+      "Barangay 13",
+      "Barangay 14",
+      "Barangay 15",
+      "Barangay 16",
+      "Barangay 17",
+      "Barangay 18",
+      "Barangay 19",
+      "Barangay 20",
+      "Barangay 21",
+      "Barangay 22",
+      "Barangay 23",
+      "Barangay 24",
+      "Barangay 25",
+      "Barangay 26",
+      "Barangay 27",
+      "Barangay 28",
+      "Barangay 29",
+      "Barangay 30",
+      "Barangay 31",
+      "Barangay 32",
+      "Barangay 33",
+      "Barangay 34",
+      "Barangay 35",
+      "Barangay 36",
+      "Barangay 37",
+      "Barangay 38",
+      "Barangay 39",
+      "Barangay 40",
+      "Bayabas",
+      "Bayanga",
+      "Besigan",
+      "Bonbon",
+      "Bugo",
+      "Bulua",
+      "Camaman-an",
+      "Canitoan",
+      "Carmen",
+      "Consolacion",
+      "Cugman",
+      "Dansolihon",
+      "F.S Catanico",
+      "Gusa",
+      "Indahag",
+      "Iponan",
+      "Kauswagan",
+      "Lapasan",
+      "Lumbia",
+      "Macabalan",
+      "Macasandig",
+      "Mambuaya",
+      "Nazareth",
+      "Pagalungan",
+      "Pagatpat",
+      "Patag",
+      "Pigsag-an",
+      "Puerto",
+      "Puntod",
+      "San Simon",
+      "Tablon",
+      "Taglimao",
+      "Tagpangi",
+      "Tignapoloan",
+      "Tuburan",
+      "Tumpagon"
+    ]
+  },
+  "real_metrics": {
+    "volume_regressor": {
+      "r2_score": 0.9660393068648516,
+      "mse": 1376680.4410690886,
+      "mae": 407.24333694199464,
+      "cross_val_r2_mean": 0.9737704855135023,
+      "cross_val_r2_std": 0.004480370141647159
+    },
+    "risk_classifier": {
+      "accuracy": 0.812,
+      "class_distribution": {
+        "0": 0.196,
+        "1": 0.3834,
+        "2": 0.4206
+      },
+      "test_accuracy_by_class": {
+        "Safe": 0.8214285714285714,
+        "Moderate": 0.7754569190600522,
+        "High": 0.8408551068883611
+      }
+    }
+  },
+  "feature_importance": [
+    {
+      "feature": "population",
+      "volume_importance": 0.4714867368838536,
+      "risk_importance": 0.03946682618896402
+    },
+    {
+      "feature": "base_waste",
+      "volume_importance": 0.4573290544482908,
+      "risk_importance": 0.04113974924796673
+    },
+    {
+      "feature": "rainfall_mm",
+      "volume_importance": 0.024493067794328527,
+      "risk_importance": 0.3113518199458404
+    },
+    {
+      "feature": "temperature_c",
+      "volume_importance": 0.006247093607542992,
+      "risk_importance": 0.051815512408901566
+    },
+    {
+      "feature": "day_of_week",
+      "volume_importance": 0.01975660817339691,
+      "risk_importance": 0.20407669485126315
+    },
+    {
+      "feature": "month",
+      "volume_importance": 0.006806913249391579,
+      "risk_importance": 0.11146828194884217
+    },
+    {
+      "feature": "day_of_month",
+      "volume_importance": 0.003667827865108598,
+      "risk_importance": 0.039121110570963374
+    },
+    {
+      "feature": "is_weekend",
+      "volume_importance": 0.005332512822448852,
+      "risk_importance": 0.1100275755915258
+    },
+    {
+      "feature": "is_market_day",
+      "volume_importance": 0.000714348313181173,
+      "risk_importance": 0.013560258582176589
+    },
+    {
+      "feature": "is_fiesta",
+      "volume_importance": 0.00015485599330214113,
+      "risk_importance": 0.0028438352053868315
+    },
+    {
+      "feature": "is_holiday",
+      "volume_importance": 3.6447712696391356e-05,
+      "risk_importance": 0.005866322142533069
+    },
+    {
+      "feature": "is_payday",
+      "volume_importance": 0.00013047718468876094,
+      "risk_importance": 0.005296853298078481
+    },
+    {
+      "feature": "is_rainy_season",
+      "volume_importance": 0.0016790842990040526,
+      "risk_importance": 0.021144734698816774
+    },
+    {
+      "feature": "is_summer",
+      "volume_importance": 0.002164971652765657,
+      "risk_importance": 0.04282042531874122
+    }
+  ],
+  "barangay_baseline": {
+    "Agusan": {
+      "population": 19039,
+      "total_waste": 7996.38,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly |    2 - Morning"
+    },
+    "Baikingon": {
+      "population": 2879,
+      "total_waste": 1209.18,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "2 - morning"
+    },
+    "Balubal": {
+      "population": 7013,
+      "total_waste": 2945.46,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "2 - morning"
+    },
+    "Balulang": {
+      "population": 42205,
+      "total_waste": 17726.1,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly |    2 - Morning"
+    },
+    "Barangay 1": {
+      "population": 168,
+      "total_waste": 70.56,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 2": {
+      "population": 50,
+      "total_waste": 21.0,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 3": {
+      "population": 93,
+      "total_waste": 39.06,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 4": {
+      "population": 68,
+      "total_waste": 28.56,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 5": {
+      "population": 34,
+      "total_waste": 14.28,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 6": {
+      "population": 33,
+      "total_waste": 13.86,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 7": {
+      "population": 544,
+      "total_waste": 228.48,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 8": {
+      "population": 90,
+      "total_waste": 37.8,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 9": {
+      "population": 130,
+      "total_waste": 54.6,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 10": {
+      "population": 557,
+      "total_waste": 233.94,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 11": {
+      "population": 162,
+      "total_waste": 68.04,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 12": {
+      "population": 257,
+      "total_waste": 107.94,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 13": {
+      "population": 965,
+      "total_waste": 405.3,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 14": {
+      "population": 351,
+      "total_waste": 147.42,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 15": {
+      "population": 1847,
+      "total_waste": 775.74,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 16": {
+      "population": 25,
+      "total_waste": 10.5,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 17": {
+      "population": 2058,
+      "total_waste": 864.36,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 18": {
+      "population": 1269,
+      "total_waste": 532.98,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 19": {
+      "population": 227,
+      "total_waste": 95.34,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 20": {
+      "population": 80,
+      "total_waste": 33.6,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 21": {
+      "population": 363,
+      "total_waste": 152.46,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 22": {
+      "population": 3324,
+      "total_waste": 1396.08,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 23": {
+      "population": 936,
+      "total_waste": 393.12,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 24": {
+      "population": 607,
+      "total_waste": 254.94,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 25": {
+      "population": 661,
+      "total_waste": 277.62,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 26": {
+      "population": 1215,
+      "total_waste": 510.3,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 27": {
+      "population": 1601,
+      "total_waste": 672.42,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 28": {
+      "population": 493,
+      "total_waste": 207.06,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 29": {
+      "population": 476,
+      "total_waste": 199.92,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 30": {
+      "population": 678,
+      "total_waste": 284.76,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 31": {
+      "population": 575,
+      "total_waste": 241.5,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 32": {
+      "population": 792,
+      "total_waste": 332.64,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 33": {
+      "population": 84,
+      "total_waste": 35.28,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 34": {
+      "population": 529,
+      "total_waste": 222.18,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 35": {
+      "population": 2002,
+      "total_waste": 840.84,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 36": {
+      "population": 447,
+      "total_waste": 187.74,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 37": {
+      "population": 181,
+      "total_waste": 76.02,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 38": {
+      "population": 48,
+      "total_waste": 20.16,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 39": {
+      "population": 17,
+      "total_waste": 7.14,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Barangay 40": {
+      "population": 339,
+      "total_waste": 142.38,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Bayabas": {
+      "population": 13991,
+      "total_waste": 5876.22,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "2 - morning"
+    },
+    "Bayanga": {
+      "population": 3402,
+      "total_waste": 1428.84,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "2 - morning"
+    },
+    "Besigan": {
+      "population": 1700,
+      "total_waste": 714.0,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "2 - morning"
+    },
+    "Bonbon": {
+      "population": 10976,
+      "total_waste": 4609.92,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly |    2 - Morning"
+    },
+    "Bugo": {
+      "population": 31229,
+      "total_waste": 13116.18,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly |    2 - Morning"
+    },
+    "Bulua": {
+      "population": 35397,
+      "total_waste": 14866.74,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "2 - morning"
+    },
+    "Camaman-an": {
+      "population": 35238,
+      "total_waste": 14799.96,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "2 - morning"
+    },
+    "Canitoan": {
+      "population": 34250,
+      "total_waste": 14385.0,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "2 - morning"
+    },
+    "Carmen": {
+      "population": 77756,
+      "total_waste": 32657.52,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly |    2 - Morning"
+    },
+    "Consolacion": {
+      "population": 9396,
+      "total_waste": 3946.32,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "2 - morning"
+    },
+    "Cugman": {
+      "population": 23468,
+      "total_waste": 9856.56,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly |    2 - Morning"
+    },
+    "Dansolihon": {
+      "population": 6206,
+      "total_waste": 2606.52,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "2 - morning"
+    },
+    "F.S Catanico": {
+      "population": 2364,
+      "total_waste": 992.88,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "2 - morning"
+    },
+    "Gusa": {
+      "population": 28974,
+      "total_waste": 12169.08,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly |    2 - Morning"
+    },
+    "Indahag": {
+      "population": 17831,
+      "total_waste": 7489.02,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "2 - morning"
+    },
+    "Iponan": {
+      "population": 27521,
+      "total_waste": 11558.82,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "2 - morning"
+    },
+    "Kauswagan": {
+      "population": 40239,
+      "total_waste": 16900.38,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "7 - nightly |    2 - Morning"
+    },
+    "Lapasan": {
+      "population": 39234,
+      "total_waste": 16478.28,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly |    2 - Morning"
+    },
+    "Lumbia": {
+      "population": 31504,
+      "total_waste": 13231.68,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "2 - morning"
+    },
+    "Macabalan": {
+      "population": 19562,
+      "total_waste": 8216.04,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "7 - nightly |    2 - Morning"
+    },
+    "Macasandig": {
+      "population": 23235,
+      "total_waste": 9758.7,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "2 - morning"
+    },
+    "Mambuaya": {
+      "population": 5963,
+      "total_waste": 2504.46,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "2 - morning"
+    },
+    "Nazareth": {
+      "population": 6971,
+      "total_waste": 2927.82,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "2 - morning"
+    },
+    "Pagalungan": {
+      "population": 2410,
+      "total_waste": 1012.2,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "2 - morning"
+    },
+    "Pagatpat": {
+      "population": 13007,
+      "total_waste": 5462.94,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly"
+    },
+    "Patag": {
+      "population": 17941,
+      "total_waste": 7535.22,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "7 - nightly |    2 - Morning"
+    },
+    "Pigsag-an": {
+      "population": 1428,
+      "total_waste": 599.76,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "2 - morning"
+    },
+    "Puerto": {
+      "population": 13174,
+      "total_waste": 5533.08,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly |    2 - Morning"
+    },
+    "Puntod": {
+      "population": 18775,
+      "total_waste": 7885.5,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly |    2 - Morning"
+    },
+    "San Simon": {
+      "population": 1642,
+      "total_waste": 689.64,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "2 - morning"
+    },
+    "Tablon": {
+      "population": 24578,
+      "total_waste": 10322.76,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "7 - nightly |    2 - Morning"
+    },
+    "Taglimao": {
+      "population": 1391,
+      "total_waste": 584.22,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "2 - morning"
+    },
+    "Tagpangi": {
+      "population": 2823,
+      "total_waste": 1185.66,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "2 - morning"
+    },
+    "Tignapoloan": {
+      "population": 5621,
+      "total_waste": 2360.82,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "2 - morning"
+    },
+    "Tuburan": {
+      "population": 1388,
+      "total_waste": 582.96,
+      "waste_per_capita": 0.42000000000000004,
+      "collection_frequency": "2 - morning"
+    },
+    "Tumpagon": {
+      "population": 2305,
+      "total_waste": 968.1,
+      "waste_per_capita": 0.42,
+      "collection_frequency": "2 - morning"
+    }
+  },
+  "risk_thresholds": {
+    "volume_risk_percentiles": {
+      "p70": 3245.717999999997,
+      "p90": 13127.730000000001
+    }
+  }
+}

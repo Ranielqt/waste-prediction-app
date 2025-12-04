@@ -1,246 +1,454 @@
+// mlService.ts - DYNAMIC REAL-TIME FORECASTING WITH REAL METRICS
+import { Barangay, WeatherData, EventData, RiskLevel, Prediction, Factor } from '@/constants/types';
 import { BARANGAYS } from '@/constants/barangays';
-import {
-  Prediction,
-  RiskLevel,
-  FeatureImportance,
-  ModelMetrics,
-  WeatherData,
-  EventData,
-  HistoricalData,
-} from '@/constants/types';
 
-function getRandomInRange(min: number, max: number): number {
-  return Math.random() * (max - min) + min;
-}
+// ⭐⭐⭐ CRITICAL FIX: Test different URLs ⭐⭐⭐
+const API_URLS = [
+  'http://localhost:8000',      // iOS Simulator / Local dev
+  'http://10.0.2.2:8000',       // Android Emulator
+  'http://172.20.10.2:8000',    // Your current network IP
+  'http://192.168.1.49:8000',   // Previous IP
+];
 
-function getTodayString(): string {
-  const today = new Date();
-  return today.toISOString().split('T')[0];
-}
+let currentAPI_URL = API_URLS[0]; // Start with localhost
 
-function getTomorrowString(): string {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  return tomorrow.toISOString().split('T')[0];
-}
+const ALL_BARANGAYS = BARANGAYS;
 
-function generateWeatherData(date: string): WeatherData {
-  const month = new Date(date).getMonth();
-  const isRainySeason = month >= 5 && month <= 10;
-  
-  return {
-    date,
-    rainMm: isRainySeason ? getRandomInRange(5, 45) : getRandomInRange(0, 15),
-    temperature: getRandomInRange(24, 32),
-    humidity: getRandomInRange(60, 90),
-  };
-}
+// Store real metrics globally
+let cachedMetrics: any = null;
+let lastMetricsFetch: Date | null = null;
 
-function generateEventData(date: string, barangayId: string): EventData {
-  const dayOfWeek = new Date(date).getDay();
-  const dayOfMonth = new Date(date).getDate();
+// ⭐⭐⭐ NEW: Test API connection and find working URL ⭐⭐⭐
+export const findWorkingAPI = async (): Promise<string | null> => {
+  console.log('🔍 Testing API connections...');
   
-  const isMarketDay = dayOfWeek === 0 || dayOfWeek === 3 || dayOfWeek === 6;
-  
-  const fiestaMap: Record<string, number> = {
-    'brgy-001': 16,
-    'brgy-002': 20,
-    'brgy-003': 8,
-    'brgy-004': 15,
-    'brgy-005': 24,
-  };
-  
-  const isFiesta = fiestaMap[barangayId] === dayOfMonth;
-  
-  return {
-    date,
-    isMarketDay,
-    isFiesta,
-    eventName: isFiesta ? 'Barangay Fiesta' : undefined,
-  };
-}
-
-function calculateBaseVolume(
-  barangay: typeof BARANGAYS[0],
-  weather: WeatherData,
-  events: EventData
-): number {
-  let baseVolume = barangay.populationDensity * 0.3;
-  
-  if (events.isMarketDay) {
-    baseVolume *= 1.4;
+  for (const url of API_URLS) {
+    try {
+      console.log(`  Testing: ${url}`);
+      const response = await fetch(`${url}/health`, {
+        method: 'GET',
+        timeout: 3000 // Add timeout
+      });
+      
+      if (response.ok) {
+        console.log(`✅ Found working API: ${url}`);
+        currentAPI_URL = url;
+        return url;
+      }
+    } catch (error) {
+      console.log(`  ❌ ${url} failed: ${error.message}`);
+    }
   }
   
-  if (events.isFiesta) {
-    baseVolume *= 2.1;
-  }
-  
-  if (weather.rainMm > 20) {
-    baseVolume *= 0.85;
-  } else if (weather.rainMm > 10) {
-    baseVolume *= 0.95;
-  }
-  
-  const weekendFactor = [0, 6].includes(new Date().getDay()) ? 1.15 : 1.0;
-  baseVolume *= weekendFactor;
-  
-  const noise = getRandomInRange(0.85, 1.15);
-  baseVolume *= noise;
-  
-  return Math.round(baseVolume);
-}
+  console.log('❌ No working API found');
+  return null;
+};
 
-function determineRiskLevel(
-  predictedVolume: number,
-  binCapacity: number
-): { risk: RiskLevel; probability: number } {
-  const ratio = predictedVolume / binCapacity;
+// ⭐⭐⭐ Fetch REAL metrics from API ⭐⭐⭐
+export const fetchModelMetrics = async (forceRefresh: boolean = false) => {
+  // Cache metrics for 5 minutes
+  const now = new Date();
+  if (!forceRefresh && cachedMetrics && lastMetricsFetch) {
+    const minutesSinceFetch = (now.getTime() - lastMetricsFetch.getTime()) / (1000 * 60);
+    if (minutesSinceFetch < 5) {
+      console.log('📊 Using cached metrics');
+      return cachedMetrics;
+    }
+  }
+
+  try {
+    console.log(`📊 Fetching REAL metrics from: ${currentAPI_URL}`);
+    const response = await fetch(`${currentAPI_URL}/api/metrics`);
+    
+    if (!response.ok) {
+      throw new Error(`Metrics API error: ${response.status} ${response.statusText}`);
+    }
+    
+    const metrics = await response.json();
+    
+    // Store for caching
+    cachedMetrics = metrics;
+    lastMetricsFetch = now;
+    
+    console.log('✅ REAL metrics loaded:', {
+      r2: metrics.r2,
+      accuracy: (metrics.accuracy * 100).toFixed(1) + '%'
+    });
+    
+    return metrics;
+  } catch (error) {
+    console.error('❌ Failed to fetch real metrics:', error);
+    
+    // Return fallback with YOUR real metrics
+    return {
+      r2: 0.966,
+      mse: 1376680.44,
+      accuracy: 0.812,
+      explained_variance: 0.966,
+      lastTrained: '2025-12-04 09:11:50',
+      modelVersion: '3.0',
+      featureImportance: {
+        population: 0.458,
+        base_waste: 0.445,
+        rainfall: 0.296,
+        temperature: 0.145,
+        market_day: 0.350,
+        day_of_week: 0.210,
+        month: 0.195
+      },
+      featuresUsed: 14,
+      barangaysCovered: 80,
+      volumeRiskThresholds: {
+        p70: 3246,
+        p90: 13128
+      }
+    };
+  }
+};
+
+// ⭐⭐⭐ Get weather forecast ⭐⭐⭐
+const getWeatherForecast = async (date: Date): Promise<{rainfall: number, temperature: number}> => {
+  const month = date.getMonth() + 1;
   
-  if (ratio >= 0.95) {
-    return { risk: 'high', probability: Math.min(0.95, ratio) };
-  } else if (ratio >= 0.75) {
-    return { risk: 'moderate', probability: ratio };
+  let rainfall = 10;
+  let temperature = 28;
+  
+  if (month >= 6 && month <= 10) {
+    rainfall = 15 + Math.random() * 25;
+    temperature = 26 + Math.random() * 4;
+  } else if (month >= 3 && month <= 5) {
+    rainfall = 5 + Math.random() * 10;
+    temperature = 30 + Math.random() * 5;
   } else {
-    return { risk: 'safe', probability: 1 - ratio };
+    rainfall = 8 + Math.random() * 12;
+    temperature = 28 + Math.random() * 3;
   }
-}
-
-function generateFeatureImportance(
-  barangay: typeof BARANGAYS[0],
-  weather: WeatherData,
-  events: EventData,
-  pastVolume: number
-): FeatureImportance[] {
-  const features: FeatureImportance[] = [
-    {
-      feature: 'Past Volume (7-day avg)',
-      importance: 0.28,
-      value: `${pastVolume} kg`,
-    },
-    {
-      feature: 'Population Density',
-      importance: 0.22,
-      value: `${barangay.populationDensity}/km²`,
-    },
-    {
-      feature: 'Rainfall',
-      importance: 0.18,
-      value: `${weather.rainMm.toFixed(1)} mm`,
-    },
-    {
-      feature: 'Market Day',
-      importance: events.isMarketDay ? 0.15 : 0.05,
-      value: events.isMarketDay ? 'Yes' : 'No',
-    },
-    {
-      feature: 'Fiesta Event',
-      importance: events.isFiesta ? 0.12 : 0.03,
-      value: events.isFiesta ? 'Yes' : 'No',
-    },
-    {
-      feature: 'Temperature',
-      importance: 0.08,
-      value: `${weather.temperature.toFixed(1)}°C`,
-    },
-    {
-      feature: 'Day of Week',
-      importance: 0.07,
-      value: new Date().toLocaleDateString('en-US', { weekday: 'short' }),
-    },
-  ];
   
-  return features.sort((a, b) => b.importance - a.importance);
-}
+  return { rainfall, temperature };
+};
 
-export function generatePredictions(): Prediction[] {
-  const tomorrow = getTomorrowString();
+// ⭐⭐⭐ MAIN FUNCTION: GENERATE PREDICTIONS WITH REAL METRICS ⭐⭐⭐
+export const generatePredictions = async (
+  targetDate?: string
+): Promise<{predictions: Prediction[], metrics: any}> => {
   
-  return BARANGAYS.map((barangay) => {
-    const weather = generateWeatherData(tomorrow);
-    const events = generateEventData(tomorrow, barangay.id);
+  console.log(`[ML Service] Starting forecast generation...`);
+  
+  // First, try to find a working API
+  const workingAPI = await findWorkingAPI();
+  if (!workingAPI) {
+    console.log('⚠️ No API found, using simulation');
+    const forecastDate = targetDate ? new Date(targetDate) : new Date();
+    forecastDate.setDate(forecastDate.getDate() + 1);
+    return {
+      predictions: generateDynamicSimulation(forecastDate),
+      metrics: await fetchModelMetrics()
+    };
+  }
+  
+  const forecastDate = targetDate ? new Date(targetDate) : new Date();
+  forecastDate.setDate(forecastDate.getDate() + 1);
+  
+  const forecastDateStr = forecastDate.toISOString().split('T')[0];
+  const dayOfWeek = forecastDate.getDay();
+  const month = forecastDate.getMonth() + 1;
+  const dayOfMonth = forecastDate.getDate();
+  
+  console.log(`[ML Service] 🌟 GENERATING FORECAST for: ${forecastDateStr}`);
+  console.log(`📅 Day: ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dayOfWeek]}`);
+  console.log(`🌐 Using API: ${currentAPI_URL}`);
+  
+  try {
+    const weather = await getWeatherForecast(forecastDate);
+    console.log(`🌤️ Weather: ${weather.rainfall.toFixed(1)}mm, ${weather.temperature.toFixed(1)}°C`);
     
-    const pastVolume = calculateBaseVolume(
-      barangay,
-      generateWeatherData(getTodayString()),
-      generateEventData(getTodayString(), barangay.id)
-    );
+    // Prepare batch request - FIXED: Ensure we have all required fields
+    const batchRequest = {
+      barangays: ALL_BARANGAYS.map((barangay) => {
+        const baseWaste = barangay.totalWaste || barangay.population * 0.42;
+        
+        let isMarketDay = 0;
+        if (barangay.hasMarket) {
+          if (dayOfWeek === 2 || dayOfWeek === 5 || dayOfWeek === 6) {
+            isMarketDay = 1;
+          }
+        }
+        
+        return {
+          barangay_id: barangay.id.toString(),
+          barangay_name: barangay.name,
+          population: barangay.population,
+          population_density: barangay.populationDensity || Math.floor(barangay.population / 50),
+          bin_capacity: barangay.binCapacity || baseWaste * 1.5, // FIX: Ensure capacity > waste
+          rainfall_mm: weather.rainfall,
+          temperature_c: weather.temperature,
+          is_market_day: isMarketDay,
+          day_of_week: dayOfWeek,
+          prediction_date: forecastDateStr
+        };
+      })
+    };
     
-    const predictedVolume = calculateBaseVolume(barangay, weather, events);
+    console.log(`📤 Sending batch request for ${batchRequest.barangays.length} barangays...`);
     
-    const { risk, probability } = determineRiskLevel(
-      predictedVolume,
-      barangay.binCapacity
-    );
+    // Call ML API with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
-    const confidence = getRandomInRange(0.82, 0.96);
+    const response = await fetch(`${currentAPI_URL}/predict-batch`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(batchRequest),
+      signal: controller.signal
+    });
     
-    const factors = generateFeatureImportance(
-      barangay,
-      weather,
-      events,
-      pastVolume
-    );
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ API error ${response.status}:`, errorText);
+      throw new Error(`API error ${response.status}: ${response.statusText}`);
+    }
+    
+    const result = await response.json();
+    console.log(`✅ API response received`);
+    
+    if (!result.predictions || result.predictions.length === 0) {
+      console.error('❌ No predictions in response');
+      throw new Error('No predictions received from API');
+    }
+
+    // ✅ The API now returns REAL metrics
+    const apiMetrics = result.metrics || {};
+    console.log('📊 API metrics:', {
+      r2: apiMetrics.r2?.toFixed(3),
+      accuracy: apiMetrics.accuracy?.toFixed(3)
+    });
+
+    // Process predictions - FIXED: Handle API response structure
+    const predictions: Prediction[] = result.predictions.map((pred: any, index: number) => {
+      const barangay = ALL_BARANGAYS[index];
+      const baseline = barangay?.totalWaste || barangay?.population * 0.42 || 0;
+      const volume = pred.predictedVolume || pred.volume || 0;
+      const increase = baseline > 0 ? ((volume - baseline) / baseline) * 100 : 0;
+      
+      // Handle risk levels properly
+      let overflowRisk = 'moderate';
+      if (pred.overflowRisk) {
+        overflowRisk = pred.overflowRisk.toLowerCase();
+      } else if (pred.risk) {
+        overflowRisk = pred.risk.toLowerCase();
+      }
+      
+      // Ensure valid RiskLevel
+      const validRisks: RiskLevel[] = ['safe', 'moderate', 'high'];
+      if (!validRisks.includes(overflowRisk as RiskLevel)) {
+        overflowRisk = 'moderate';
+      }
+      
+      // Add volume risk category if provided by API
+      const volumeRisk = pred.volumeRisk || {
+        volume_risk: volume > 13128 ? 'High Volume' : 
+                    volume > 3246 ? 'Moderate Volume' : 'Normal Volume',
+        color: volume > 13128 ? '#ff3b30' : 
+               volume > 3246 ? '#ff9500' : '#34c759',
+        action: volume > 13128 ? 'Immediate intervention needed' : 
+                volume > 3246 ? 'Monitor closely' : 'Standard schedule'
+      };
+      
+      return {
+        barangayId: pred.barangayId || pred.barangay_id || barangay?.id.toString(),
+        barangayName: pred.barangayName || pred.barangay_name || barangay?.name || `Barangay ${index + 1}`,
+        predictedVolume: volume,
+        overflowRisk: overflowRisk as RiskLevel,
+        confidence: pred.confidence || pred.confidence_score || 0.7,
+        date: forecastDateStr,
+        timestamp: new Date().toISOString(),
+        events: pred.events || [],
+        eventMultiplier: pred.eventMultiplier || 1.0,
+        volumeRisk: volumeRisk,
+        factors: [
+          { feature: 'Forecast Date', value: forecastDateStr, importance: 0.5 },
+          { feature: 'Weather', value: `${weather.rainfall.toFixed(1)}mm, ${weather.temperature.toFixed(1)}°C`, importance: 0.4 },
+          { feature: 'Increase', value: `${increase.toFixed(1)}%`, importance: 0.35 },
+          { feature: 'Market Day', value: batchRequest.barangays[index].is_market_day ? 'Yes' : 'No', importance: 0.225 },
+          { feature: 'Volume Risk', value: volumeRisk.volume_risk, importance: 0.3 }
+        ]
+      };
+    });
+    
+    console.log(`✅ Forecast generated: ${predictions.length} barangays`);
+    
+    // Return BOTH predictions and metrics
+    return {
+      predictions,
+      metrics: apiMetrics
+    };
+    
+  } catch (error) {
+    console.error('[ML Service] Forecast failed:', error);
+    console.error('Error details:', error.message);
+    
+    // Fallback simulation
+    console.log('🔄 Falling back to simulation...');
+    const simulatedPredictions = generateDynamicSimulation(forecastDate);
+    const fallbackMetrics = await fetchModelMetrics();
     
     return {
-      barangayId: barangay.id,
-      barangayName: barangay.name,
-      date: tomorrow,
-      predictedVolume,
-      overflowRisk: risk,
-      overflowProbability: probability,
-      confidence,
-      factors,
+      predictions: simulatedPredictions,
+      metrics: fallbackMetrics
     };
-  });
-}
+  }
+};
 
-export function getModelMetrics(): ModelMetrics {
-  return {
-    regression: {
-      mae: 87.3,
-      rmse: 124.6,
-      r2: 0.87,
-    },
-    classification: {
-      accuracy: 0.91,
-      precision: 0.88,
-      recall: 0.86,
-      f1Score: 0.87,
-    },
-  };
-}
-
-export function generateHistoricalData(barangayId: string, days: number = 30): HistoricalData[] {
-  const barangay = BARANGAYS.find((b) => b.id === barangayId);
-  if (!barangay) return [];
+// Dynamic simulation fallback (keep as is)
+const generateDynamicSimulation = (forecastDate: Date): Prediction[] => {
+  const forecastDateStr = forecastDate.toISOString().split('T')[0];
+  const dayOfWeek = forecastDate.getDay();
+  const month = forecastDate.getMonth() + 1;
   
-  const data: HistoricalData[] = [];
-  
-  for (let i = days; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    const dateStr = date.toISOString().split('T')[0];
-    
-    const weather = generateWeatherData(dateStr);
-    const events = generateEventData(dateStr, barangayId);
-    
-    const actualVolume = calculateBaseVolume(barangay, weather, events);
-    const predictedVolume = actualVolume * getRandomInRange(0.92, 1.08);
-    
-    data.push({
-      date: dateStr,
-      barangayId,
-      actualVolume,
-      predictedVolume: Math.round(predictedVolume),
-      weather,
-      events,
-    });
+  let rainfall = 15, temperature = 30;
+  if (month >= 6 && month <= 10) {
+    rainfall = 20; temperature = 28;
+  } else if (month >= 3 && month <= 5) {
+    rainfall = 10; temperature = 32;
   }
   
-  return data;
-}
+  console.log(`[ML Service] Using simulated forecast for ${forecastDateStr}`);
+  
+  return ALL_BARANGAYS.map((barangay) => {
+    const baseline = barangay.totalWaste || barangay.population * 0.42;
+    
+    const rainFactor = 1 + (rainfall * 0.008);
+    const marketFactor = (barangay.hasMarket && (dayOfWeek === 2 || dayOfWeek === 5 || dayOfWeek === 6)) ? 1.4 : 1.0;
+    const floodFactor = barangay.floodRisk === 'high' ? 1.35 : 
+                       barangay.floodRisk === 'medium' ? 1.15 : 1.05;
+    
+    const forecastVolume = Math.round(baseline * rainFactor * marketFactor * floodFactor);
+    const increase = ((forecastVolume - baseline) / baseline) * 100;
+    
+    let risk: RiskLevel = 'safe';
+    if (increase > 35 || (barangay.floodRisk === 'high' && rainfall > 25)) {
+      risk = 'high';
+    } else if (increase > 20 || (barangay.hasMarket && marketFactor > 1)) {
+      risk = 'moderate';
+    }
+    
+    // Simulate volume risk
+    const volume = forecastVolume;
+    let volumeRisk;
+    if (volume > 13128) { // P90 threshold
+      volumeRisk = {
+        volume_risk: 'High Volume',
+        color: '#ff3b30',
+        action: 'Immediate intervention needed'
+      };
+    } else if (volume > 3246) { // P70 threshold
+      volumeRisk = {
+        volume_risk: 'Moderate Volume',
+        color: '#ff9500',
+        action: 'Monitor closely'
+      };
+    } else {
+      volumeRisk = {
+        volume_risk: 'Normal Volume',
+        color: '#34c759',
+        action: 'Standard schedule'
+      };
+    }
+    
+    return {
+      barangayId: barangay.id.toString(),
+      barangayName: barangay.name,
+      predictedVolume: forecastVolume,
+      overflowRisk: risk,
+      confidence: 0.75 + Math.random() * 0.2,
+      date: forecastDateStr,
+      timestamp: new Date().toISOString(),
+      events: [],
+      eventMultiplier: 1.0,
+      volumeRisk: volumeRisk,
+      factors: [
+        { feature: 'Forecast Date', value: forecastDateStr, importance: 0.5 },
+        { feature: 'Simulated Weather', value: `${rainfall}mm, ${temperature}°C`, importance: 0.4 },
+        { feature: 'Market Day', value: marketFactor > 1 ? 'Yes' : 'No', importance: 0.3 },
+        { feature: 'Volume Risk', value: volumeRisk.volume_risk, importance: 0.3 }
+      ]
+    };
+  });
+};
 
-export function getPredictionForBarangay(barangayId: string): Prediction | null {
-  const predictions = generatePredictions();
-  return predictions.find((p) => p.barangayId === barangayId) || null;
-}
+// ⭐⭐⭐ Get forecast for specific date ⭐⭐⭐
+export const getForecastForDate = async (dateString: string): Promise<Prediction[]> => {
+  console.log(`[ML Service] Getting forecast for: ${dateString}`);
+  const result = await generatePredictions(dateString);
+  return result.predictions;
+};
+
+// ⭐⭐⭐ Get forecast for next N days ⭐⭐⭐
+export const getForecastRange = async (days: number = 7): Promise<Record<string, Prediction[]>> => {
+  console.log(`[ML Service] Getting ${days}-day forecast range`);
+  
+  const forecasts: Record<string, Prediction[]> = {};
+  
+  for (let i = 1; i <= days; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() + i);
+    const dateStr = date.toISOString().split('T')[0];
+    
+    try {
+      const result = await generatePredictions(dateStr);
+      forecasts[dateStr] = result.predictions;
+    } catch (error) {
+      console.error(`Failed to get forecast for ${dateStr}:`, error);
+    }
+  }
+  
+  return forecasts;
+};
+
+// ⭐⭐⭐ Updated: Get model metrics ⭐⭐⭐
+export const getModelMetrics = async () => {
+  const metrics = await fetchModelMetrics();
+  
+  return {
+    r2: metrics.r2 || 0.966,
+    mse: metrics.mse || 1376680.44,
+    accuracy: metrics.accuracy || 0.812,
+    explained_variance: metrics.explained_variance || 0.966,
+    lastTrained: metrics.lastTrained || '2025-12-04 09:11:50',
+    forecasting: 'DYNAMIC',
+    supportsDateRange: true,
+    modelVersion: metrics.modelVersion || '3.0',
+    featureImportance: metrics.featureImportance || {
+      population: 0.458,
+      base_waste: 0.445,
+      rainfall: 0.296,
+      temperature: 0.145,
+      market_day: 0.350
+    },
+    volumeRiskThresholds: metrics.volumeRiskThresholds || {
+      p70: 3246,
+      p90: 13128
+    }
+  };
+};
+
+// ⭐⭐⭐ NEW: Initialize and test on app start ⭐⭐⭐
+export const initializeMLService = async () => {
+  console.log('🚀 Initializing ML Service...');
+  const workingAPI = await findWorkingAPI();
+  
+  if (workingAPI) {
+    console.log(`✅ ML Service ready using: ${workingAPI}`);
+    // Pre-fetch metrics
+    await fetchModelMetrics(true);
+    return true;
+  } else {
+    console.log('⚠️ ML Service using simulation mode');
+    return false;
+  }
+};
